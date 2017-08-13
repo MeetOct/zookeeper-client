@@ -74,16 +74,16 @@ namespace Rabbit.Zookeeper
         /// </summary>
         /// <param name="path">节点路径。</param>
         /// <param name="type">事件类型。</param>
-        /// <param name="currentChildrens">最新的子节点集合。</param>
-        public NodeChildrenChangeArgs(string path, Watcher.Event.EventType type, IEnumerable<string> currentChildrens) : base(path, type)
+        /// <param name="currentChildrenDatas">最新的子节点集合。</param>
+        public NodeChildrenChangeArgs(string path, Watcher.Event.EventType type, Dictionary<string, DataResult> currentChildrenDatas) : base(path, type)
         {
-            CurrentChildrens = currentChildrens;
+            CurrentChildrenDatas = currentChildrenDatas;
         }
 
         /// <summary>
         /// 当前节点的子节点数据（最新的）
         /// </summary>
-        public IEnumerable<string> CurrentChildrens { get; private set; }
+        public Dictionary<string, DataResult> CurrentChildrenDatas { get; private set; }
     }
 
     /// <summary>

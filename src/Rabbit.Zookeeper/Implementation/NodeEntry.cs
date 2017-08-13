@@ -3,6 +3,7 @@ using org.apache.zookeeper.data;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace Rabbit.Zookeeper.Implementation
@@ -62,10 +63,35 @@ namespace Rabbit.Zookeeper.Implementation
         {
             var zookeeper = _client.ZooKeeper;
             var data = await zookeeper.getChildrenAsync(Path, watch);
-
-            _localSnapshot.SetChildrens(data?.Children);
-
+            var childDatas = new Dictionary<string, DataResult>();
+            if (data?.Children?.Any() == true)
+            {
+                foreach (var item in data?.Children)
+                {
+                    var child = await zookeeper.getDataAsync(item, false);
+                    childDatas.Add(item, child);
+                }
+                childDatas.ToList	()
+            }
+            _localSnapshot.SetChildrenDatas(childDatas);
             return data?.Children;
+        }
+
+        public async Task<Dictionary<string, DataResult>> GetChildrenDatasAsync(bool watch = false)
+        {
+            var zookeeper = _client.ZooKeeper;
+            var data = await zookeeper.getChildrenAsync(Path, watch);
+            var childDatas = new Dictionary<string, DataResult>();
+            if (data?.Children?.Any() == true)
+            {
+                foreach (var item in data?.Children)
+                {
+                    var child = await zookeeper.getDataAsync(item, false);
+                    childDatas.Add(item, child);
+                }
+            }
+            _localSnapshot.SetChildrenDatas(childDatas);
+            return childDatas;
         }
 
         public async Task<bool> ExistsAsync(bool watch = false)
@@ -269,12 +295,12 @@ namespace Rabbit.Zookeeper.Implementation
                 return;
 
             //获取当前节点最新的子节点信息
-            var getCurrentChildrens = new Func<Task<IEnumerable<string>>>(() => _client.RetryUntilConnected(
+            var getCurrentChildrens = new Func<Task<Dictionary<string, DataResult>>>(() => _client.RetryUntilConnected(
                 async () =>
                 {
                     try
                     {
-                        return await GetChildrenAsync();
+                        return await GetChildrenDatasAsync();
                     }
                     catch (KeeperException.NoNodeException)
                     {
@@ -382,7 +408,7 @@ namespace Rabbit.Zookeeper.Implementation
             public IEnumerable<byte> Data { get; set; }
             public int? Version { get; set; }
             public List<ACL> Acls { get; set; }
-            public IEnumerable<string> Childrens { get; set; }
+            public Dictionary<string, DataResult> ChildrenDatas { get; set; }
 
             public void Create(CreateMode mode, byte[] data, List<ACL> acls)
             {
@@ -391,7 +417,7 @@ namespace Rabbit.Zookeeper.Implementation
                 Data = data;
                 Version = -1;
                 Acls = acls;
-                Childrens = null;
+                ChildrenDatas = null;
             }
 
             public void Update(IEnumerable<byte> data, int version)
@@ -408,7 +434,7 @@ namespace Rabbit.Zookeeper.Implementation
                 Data = null;
                 Version = null;
                 Acls = null;
-                Childrens = null;
+                ChildrenDatas = null;
             }
 
             public void SetData(IEnumerable<byte> data)
@@ -417,10 +443,10 @@ namespace Rabbit.Zookeeper.Implementation
                 Data = data;
             }
 
-            public void SetChildrens(IEnumerable<string> childrens)
+            public void SetChildrenDatas(Dictionary<string, DataResult> childrenDatas)
             {
                 IsExist = true;
-                Childrens = childrens;
+                ChildrenDatas = childrenDatas;
             }
 
             public void SetExists(bool exists)
